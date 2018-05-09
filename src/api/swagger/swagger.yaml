@@ -1,0 +1,1168 @@
+swagger: "2.0"
+info:
+  description: "BlaynCafe root API"
+  version: "0.1.0"
+  title: "BlaynCafe API"
+basePath: "/api"
+tags:
+- name: "Student"
+- name: "Event"
+- name: "Sponsor"
+- name: "Admin"
+- name: "Image"
+consumes:
+- "application/json"
+produces:
+- "application/json"
+schemes:
+- "http"
+paths:
+  /student/register:
+    post:
+      tags:
+      - "Student"
+      summary: "Register new student"
+      operationId: "newStudent"
+      parameters: 
+      - in: "body"
+        name: "student"
+        description: "Student information"
+        schema:
+          $ref: "#/definitions/SubmitStudent"
+      responses:
+        405:
+          description: "Invalid information"
+        201:
+          description: "Successful registed as new Student"
+          schema:
+            type: "string"
+            description: "A random barcode for Student"
+  /student/login:
+    get:
+      tags:
+      - "Student"
+      summary: "Student login"
+      operationId: "loginStudent"
+      parameters:
+      - name: "username"
+        in: "query"
+        description: "The user name for login"
+        required: true
+        type: "string"
+      - name: "password"
+        in: "query"
+        description: "The password for login in clear text"
+        required: true
+        type: "string"
+      responses:
+        401:
+          description: "Invalidate email or password"
+        200:
+          description: "Login successful"
+          schema:
+            $ref: "#/definitions/AccessToken"
+  /student/logout:
+    get:
+      tags:
+      - "Student"
+      summary: "Student logout"
+      operationId: "logoutStudent"
+      security:
+      - StudentSecurity: []
+      responses:
+        200:
+          description: "Logout successful"
+  /student/logs:
+    get:
+      tags:
+      - "Student"
+      summary: "Get student visiting history"
+      security:
+      - StudentSecurity: []
+      operationId: "studentUserLogs"
+      responses:
+        200:
+          description: "Student visiting logs"
+          schema:
+            $ref: '#/definitions/ResponseStudentLog'
+  /student/info:
+    get:
+      tags:
+      - "Student"
+      summary: "Get current student information"
+      security: 
+      - StudentSecurity: []
+      operationId: "studentUserInfo"
+      responses:
+        200:
+          description: "Student information"
+          schema:
+            $ref: '#/definitions/ResponseStudent'
+    post:
+      tags:
+      - "Student"
+      summary: "Edit student profile"
+      security: 
+      - StudentSecurity: []
+      operationId: "editStudentUserInfo"
+      parameters: 
+      - in: "body"
+        name: "student"
+        description: "Student's new information"
+        schema:
+          $ref: "#/definitions/SubmitStudent"
+      responses:
+        200:
+          description: "Successful edit student profile"
+          schema:
+            $ref: '#/definitions/ResponseStudent'
+        
+  /student/event:
+    get:
+      tags:
+      - "Event"
+      - "Student"
+      summary: "View student applied events"
+      operationId: "studentListEvent"
+      parameters:
+      - name: "limit"
+        in: "query"
+        description: "Limit the number of return results"
+        required: false
+        type: "integer"
+      - name: "offset"
+        in: "query"
+        description: "Offset of the return results"
+        required: false
+        type: "integer"
+      - name: "eventStatus"
+        in: "query"
+        description: "Filter the return events by status"
+        required: false
+        type: "string"
+        enum: ['draft', 'under_review', 'awaiting_hoding', 'held']
+      - name: "search"
+        in: "query"
+        description: "Search query"
+        required: false
+        type: "string"
+      - name: "sort"
+        in: "query"
+        description: "Sort by field"
+        required: false
+        type: "string"
+      - name: "sortOrder"
+        in: "query"
+        description: "Sort order"
+        required: false
+        type: "string"
+        enum: ["asc", "desc"]
+      security:
+      - StudentSecurity: []
+      responses:
+        405:
+          description: "Invalid input"
+        401:
+          description: "Invalidate access token"
+        200:
+          description: "Return all events which student applied"
+          schema:
+            $ref: "#/definitions/ResponseEvent"
+  /student/barcode/{barcode}:
+    get:
+      tags:
+      - "Admin"
+      security:
+      - AdminSecurity: []
+      summary: "Find student with given barcode"
+      operationId: "getStudentByBarcode"
+      parameters:
+      - in: "path"
+        name: "barcode"
+        description: "Barcode number"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Return student with given barcode"
+          schema:
+            $ref: "#/definitions/ResponseStudent"
+        404:
+          description: "Not found any student with given barcode"
+  /student/checkout:
+    get:
+      tags:
+      - "Admin"
+      summary: "Checkout student by barcode"
+      operationId: "checkoutByBarcode"
+      security:
+      - AdminSecurity: []
+      parameters:
+      - in: "query"
+        name: "barcode"
+        description: "Barcode number"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Return student with given barcode"
+          schema:
+            $ref: "#/definitions/ResponseBaseStudentLog"
+        404:
+          description: "Not found any student with given barcode"
+  /student/event/join:
+    post:
+      tags:
+      - "Event"
+      - "Student"
+      summary: "Enroll student to an event"
+      operationId: "enrollStudentEvent"
+      parameters:
+      - name: "eventId"
+        in: "query"
+        description: "ID of the event which student wants to join"
+        required: true
+        type: "string"
+      responses:
+        405:
+          description: "Invalid event ID"
+        401:
+          description: "Invalidate access token"
+        200:
+          description: "Successful enrolled event"
+      security:
+      - StudentSecurity: []
+  /student/event/cancel:
+    post:
+      tags:
+      - "Event"
+      - "Student"
+      summary: "Cancel an joined event"
+      operationId: "cancelStudentEvent"
+      parameters:
+      - name: "eventId"
+        in: "query"
+        description: "ID of the event which student wants to cancel"
+        required: true
+        type: "string"
+      responses:
+        405:
+          description: "Invalid event ID"
+        401:
+          description: "Invalidate access token"
+        200:
+          description: "Successful enrolled event"
+      security:
+      - StudentSecurity: []
+  /sponsor/event/{eventId}/cancel:
+    post:
+      tags:
+      - "Event"
+      - "Sponsor"
+      summary: "Cancel an event which sponsor created before"
+      operationId: "cancelEvent"
+      parameters:
+      - name: "eventId"
+        in: "path"
+        description: "ID of the event which sponsor wants to cancel"
+        required: true
+        type: "string"
+      security:
+      - SponsorSecurity: []
+      responses:
+        405:
+          description: "Invalid event ID or enrollment cannot be cancel"
+        401:
+          description: "Invalidate access token"
+        200:
+          description: "Successful enrolled event"
+  /sponsor/event:
+    get:
+      tags:
+      - "Event"
+      - "Sponsor"
+      summary: "View sponsor created events"
+      operationId: "sponsorListEvent"
+      parameters:
+      - name: "limit"
+        in: "query"
+        description: "Limit the number of return results"
+        required: false
+        type: "integer"
+      - name: "offset"
+        in: "query"
+        description: "Offset of the return results"
+        required: false
+        type: "integer"
+      - name: "search"
+        in: "query"
+        description: "Search query"
+        required: false
+        type: "string"
+      - name: "sort"
+        in: "query"
+        description: "Sort by field"
+        required: false
+        type: "string"
+      - name: "sortOrder"
+        in: "query"
+        description: "Sort order"
+        required: false
+        type: "string"
+        enum: ["asc", "desc"]
+      - name: "timeRange"
+        in: "query"
+        description: "Time range in query"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+          format: "date"
+      security:
+      - SponsorSecurity: []
+      responses:
+        405:
+          description: "Invalid input"
+        401:
+          description: "Invalid access token"
+        200:
+          description: "Return all events which sponsor created"
+          schema:
+            $ref: "#/definitions/ResponseEvent"
+    post:
+      tags:
+      - "Event"
+      - "Sponsor"
+      summary: "Submit an event"
+      operationId: "createNewEventBySponsor"
+      parameters:
+      - in: "body"
+        name: "event"
+        description: "Event's information which sponsor want to create"
+        schema:
+          $ref: "#/definitions/SubmitEvent"
+      security:
+      - SponsorSecurity: []
+      responses:
+        405:
+          description: "Invalid input"
+        401:
+          description: "Invalid access token"
+        201:
+          description: "Successful submiited new event"
+  /sponsor/login:
+    get:
+      tags:
+      - "Sponsor"
+      summary: "Sponsor login"
+      operationId: "loginSponsor"
+      parameters:
+      - name: "username"
+        in: "query"
+        description: "The user name for login"
+        required: true
+        type: "string"
+      - name: "password"
+        in: "query"
+        description: "The password for login in clear text"
+        required: true
+        type: "string"
+      responses:
+        401:
+          description: "Invalidate email or password"
+        200:
+          description: "Login successful"
+          schema:
+            $ref: "#/definitions/AccessToken"
+  /sponsor/info:
+    get:
+      tags:
+      - "Sponsor"
+      summary: "Get current sponsor information"
+      security: 
+      - SponsorSecurity: []
+      operationId: "sponsorUserInfo"
+      responses:
+        200:
+          description: "Sponsor information"
+          schema:
+            $ref: '#/definitions/ResponseSponsor'
+    post:
+      tags:
+      - "Sponsor"
+      summary: "Edit sponsor profile"
+      security: 
+      - SponsorSecurity: []
+      operationId: "editSponsorUserInfo"
+      parameters: 
+      - in: "body"
+        name: "sponsor"
+        description: "Sponsor's new information"
+        schema:
+          $ref: "#/definitions/SubmitSponsor"
+      responses:
+        200:
+          description: "Successful edit sponsor profile"
+          schema:
+            $ref: '#/definitions/ResponseSponsor'
+  /sponsor/logout:
+    get:
+      tags:
+      - "Sponsor"
+      operationId: "logoutSponsor"
+      summary: "Sponsor logout"
+      security:
+      - SponsorSecurity: []
+      responses:
+        200:
+          description: "Logout successful"
+  /student:
+    get:
+      tags:
+      - "Admin"
+      summary: "View list students"
+      description: ""
+      operationId: "studentList"
+      parameters:
+      - name: "limit"
+        in: "query"
+        description: "Limit the number of return results"
+        required: false
+        type: "integer"
+      - name: "offset"
+        in: "query"
+        description: "Offset of the return results"
+        required: false
+        type: "integer"
+      - name: "search"
+        in: "query"
+        description: "Search query"
+        required: false
+        type: "string"
+      - name: "sort"
+        in: "query"
+        description: "Sort by field"
+        required: false
+        type: "string"
+      - name: "sortOrder"
+        in: "query"
+        description: "Sort order"
+        required: false
+        type: "string"
+        enum: ["asc", "desc"]
+      responses:
+        405:
+          description: "Invalid input"
+        401:
+          description: "Invalidate access token"
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/ResponseStudent"
+      security:
+      - AdminSecurity: []
+  /student/{id}/status:
+    post:
+      tags:
+      - "Admin"
+      summary: "Set status of student: member, under review, deactivate"
+      operationId: "setStudentStatus"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of student to return"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "status"
+        description: "Status will be assign to student"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            status:
+              type: "string"
+              enum:
+              - "member"
+              - "under_review"
+              - "deactivate"
+      responses:
+        200:
+          description: "Successful change student status"
+        404:
+          description: "Not found student with that ID"
+      security:
+      - AdminSecurity: []
+  /student/{id}:
+    get:
+      tags:
+      - "Admin"
+      summary: "Get student information"
+      operationId: "getStudentInfo"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of student to return"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Invalid student ID"
+        200:
+          description: "Return student information with studentId"
+          schema:
+            $ref: "#/definitions/ResponseStudent"
+      security:
+      - AdminSecurity: []
+    post:
+      tags:
+      - "Admin"
+      summary: "Edit student profile"
+      security: 
+      - AdminSecurity: []
+      operationId: "editStudentInfo"
+      parameters: 
+      - in: "body"
+        name: "student"
+        description: "Student's new information"
+        schema:
+          $ref: "#/definitions/SubmitStudent"
+      - name: "id"
+        in: "path"
+        description: "ID of student to return"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Successful edit student profile"
+          schema:
+            $ref: '#/definitions/ResponseStudent'
+  /sponsor:
+    get:
+      tags:
+      - "Admin"
+      - "Student"
+      summary: "View list sponsor"
+      operationId: "sponsorList"
+      parameters:
+      - name: "limit"
+        in: "query"
+        description: "Limit the number of return results"
+        required: false
+        type: "integer"
+      - name: "offset"
+        in: "query"
+        description: "Offset of the return results"
+        required: false
+        type: "integer"
+      - name: "search"
+        in: "query"
+        description: "Search query"
+        required: false
+        type: "string"
+      - name: "sort"
+        in: "query"
+        description: "Sort by field"
+        required: false
+        type: "string"
+      - name: "sortOrder"
+        in: "query"
+        description: "Sort order"
+        required: false
+        type: "string"
+        enum: ["asc", "desc"]
+      responses:
+        405:
+          description: "Invalid input"
+        401:
+          description: "Invalidate access token"
+        200:
+          description: "successful operation"
+          schema:
+            $ref: '#/definitions/ResponseSponsor'
+    post:
+      tags:
+      - "Admin"
+      security:
+      - AdminSecurity: []
+      summary: "Create new sponsor"
+      operationId: "createSponsor"
+      parameters: 
+      - in: "body"
+        name: "sponsor"
+        description: "Sponsor's new information"
+        schema:
+          $ref: "#/definitions/SubmitSponsor"
+      responses:
+        201:
+          description: "successful created new sponsor"
+          schema:
+            $ref: '#/definitions/ResponseSponsor'
+  /sponsor/{id}:
+    get:
+      tags:
+      - "Admin"
+      summary: "Get sponsor information"
+      operationId: "getSponsorInfo"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of sponsor to return"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Invalid sponsor ID"
+        200:
+          description: "Return sponsor information with that ID"
+          schema:
+            $ref: '#/definitions/ResponseSponsor'
+      security:
+      - AdminSecurity: []
+    post:
+      tags:
+      - "Admin"
+      summary: "Edit sponsor profile"
+      security: 
+      - AdminSecurity: []
+      operationId: "editSponsorInfo"
+      parameters: 
+      - in: "body"
+        name: "sponsor"
+        description: "Sponsor's new information"
+        schema:
+          $ref: "#/definitions/SubmitSponsor"
+      - name: "id"
+        in: "path"
+        description: "ID of sponsor to return"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Successful edit sponsor profile"
+          schema:
+            $ref: '#/definitions/ResponseSponsor'
+  /event/{id}:
+    get:
+      tags:
+      - "Admin"
+      - "Student"
+      - "Sponsor"
+      - "Event"
+      summary: "Get event information"
+      operationId: "getEventInfo"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of event to return"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Invalid event ID"
+        200:
+          description: "Return event information with that ID"
+          schema:
+            $ref: "#/definitions/ResponseEvent"
+      security:
+      - AdminSecurity: []
+      - SponsorSecurity: []
+      - StudentSecurity: []
+    put:
+      tags:
+      - "Admin"
+      - "Sponsor"
+      summary: "Edit event information"
+      operationId: "editEvent"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of event to edit"
+        required: true
+        type: "string"
+      - in: 'body'
+        name: 'event'
+        description: 'updated event'
+        schema:
+          $ref: "#/definitions/SubmitEvent"
+      responses:
+        404:
+          description: "Event with id not found or not created by this sponsor"
+        201:
+          description: "Successful edit event"
+      security: 
+      - AdminSecurity: []
+      - SponsorSecurity: []
+    delete:
+      tags:
+      - "Admin"
+      - "Sponsor"
+      summary: "Delete an event"
+      operationId: "deleteEvent"
+      parameters: 
+      - name: "id"
+        in: "path"
+        description: "ID of event to delete"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Event with id not found or not created by this sponsor"
+        200:
+          description: "Successful delete event"
+      security: 
+      - AdminSecurity: []
+      - SponsorSecurity: []
+  /event/{id}/student:
+    get:
+      tags: 
+      - "Admin"
+      - "Sponsor"
+      - "Event"
+      summary: "Get list students who have joined the event"
+      operationId: "getListStudentJoinEvent"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of event to return"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Event with id not found or not created by this sponsor"
+        200:
+          description: "List students who have joined the event"
+          schema:
+            $ref: '#/definitions/ResponseStudent'
+      security: 
+      - AdminSecurity: []
+      - SponsorSecurity: []
+  /slotremain:
+    get:
+      tags:
+      - "Admin"
+      - "Student"
+      operationId: "getSlotRemain"
+      summary: "Get remaining slot in Blayncafe"
+      responses:
+        200:
+          description: "Number of remaining slot in Blayncafe"
+          schema:
+            type: 'integer'
+      security: 
+      - AdminSecurity: []
+      - StudentSecurity: []
+  /student/{id}/history:
+    get:
+      tags:
+      - "Admin"
+      operationId: "getStudentHistory"
+      summary: "Get student visiting history"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of student"
+        required: true
+        type: "string"
+      security:
+      - AdminSecurity: []
+      responses: 
+        200:
+          description: "Visiting history of student"
+          schema:
+            $ref: '#/definitions/ResponseStudentLog'
+  /event:
+    get:
+      tags:
+      - "Admin"
+      - "Student"
+      - "Sponsor"
+      summary: "Get all events"
+      operationId: "listAllEvents"
+      parameters:
+      - name: "limit"
+        in: "query"
+        description: "Limit the number of return results"
+        required: false
+        type: "integer"
+      - name: "offset"
+        in: "query"
+        description: "Offset of the return results"
+        required: false
+        type: "integer"
+      - name: "search"
+        in: "query"
+        description: "Search query"
+        required: false
+        type: "string"
+      - name: "sort"
+        in: "query"
+        description: "Sort by field"
+        required: false
+        type: "string"
+      - name: "sortOrder"
+        in: "query"
+        description: "Sort order"
+        required: false
+        type: "string"
+        enum: ["asc", "desc"]
+      - name: "status"
+        in: "query"
+        description: "Event status"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+      - name: "timeRange"
+        in: "query"
+        description: "Time range in query"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+          format: "date"
+      responses:
+        200:
+          description: "Return all event"
+          schema:
+            $ref: '#/definitions/ResponseEvent'
+  /root/login:
+    get:
+      tags:
+      - "Admin"
+      summary: "Admin login"
+      operationId: "loginRoot"
+      parameters:
+      - name: "username"
+        in: "query"
+        description: "The user name for login"
+        required: true
+        type: "string"
+      - name: "password"
+        in: "query"
+        description: "The password for login in clear text"
+        required: true
+        type: "string"
+      responses:
+        401:
+          description: "Invalidate email or password"
+        200:
+          description: "Login successful"
+          schema:
+            $ref: "#/definitions/AccessToken"
+  /image/upload:
+    post:
+      tags:
+      - "Images"
+      summary: "upload image"
+      operationId: "uploadImage"
+      parameters:
+      - in: formData
+        name: image
+        type: file
+        description: Photo to upload
+      consumes:
+      - multipart/form-data
+      responses:
+        201:
+          description: "file uploaded"
+          schema:
+            type: "string"
+  /image/{imageId}:
+    get:
+      tags:
+      - "Images"
+      summary: "get image"
+      operationId: "getImage"
+      parameters:
+      - in: "path"
+        name: "imageId"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: "file return"
+          schema:
+            type: file
+            
+  /student/isValidEmail:
+    get:
+      summary: "check if an email is valid email"
+      operationId: "checkValidEmail"
+      parameters:
+      - in: "query"
+        name: "email"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: "return valid or invalid"
+          schema:
+            type: "string"
+            enum: ["valid", "invalid"]
+  /student/changePassword:
+    post:
+      summary: "change student password"
+      operationId: "changeStudentPassword"
+      parameters:
+      - in: "query"
+        name: "password"
+        type: "string"
+        required: true
+      - in: "query"
+        name: "email"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: "success change password"
+          schema:
+            type: "string"
+  /statistic:
+    get:
+      tags:
+      - "Admin"
+      - "Sponsor"
+      security: 
+      - AdminSecurity: []
+      - SponsorSecurity: []
+      summary: "Get number statistic"
+      operationId: "getStatistic"
+      responses:
+        200:
+          description: "Success return statistic"
+          schema:
+            $ref: "#/definitions/ResponseStatistic"
+      
+securityDefinitions:
+  AdminSecurity:
+    type: "apiKey"
+    name: "ADMIN-API-KEY"
+    in: "header"
+  StudentSecurity:
+    type: "apiKey"
+    name: "STUDENT-API-KEY"
+    in: "header"
+  SponsorSecurity:
+    type: "apiKey"
+    name: "SPONSOR-API-KEY"
+    in: "header"
+definitions:
+  BaseSponsor:
+    type: "object"
+    properties:
+      companyName:
+        type: "string"
+        maxLength: 255
+      staffName:
+        type: "string"
+        maxLength: 255
+      staffRubyName:
+        type: "string"
+        maxLength: 255
+      companyAddress:
+        type: "string"
+      companyPhoneNumber:
+        type: "string"
+      email:
+        type: "string"
+        format: "email"
+      departure:
+        type: "string"
+      position:
+        type: "string"
+      remark:
+        type: "string"
+  ResponseSponsor:
+    type: "object"
+    properties:
+      total:
+        type: "integer"
+      offset:
+        type: "integer"
+      results:
+        type: "array"
+        items:
+          allOf:
+          - $ref: '#/definitions/BaseSponsor'
+          - type: "object"
+            properties:
+              id:
+                type: "integer"
+                format: "int64"
+  SubmitSponsor:
+    allOf:
+    - $ref: '#/definitions/BaseSponsor'
+    - type: "object"
+      properties:
+        password:
+          type: "string"
+          format: "password"
+  BaseStudent:
+    type: "object"
+    properties:
+      familyName:
+        type: "string"
+        maxLength: 255
+      giveName:
+        type: "string"
+        maxLength: 255
+      email:
+        type: "string"
+        format: "email"
+      phoneNumber:
+        type: "string"
+      address:
+        type: "string"
+      admissionYear:
+        type: "integer"
+        minimum: 2010
+        maximum: 2050
+      sex:
+        type: "string"
+        enum: ["male", "female", "other"]
+      department:
+        type: "string"
+      dateOfBirth:
+        type: "string"
+        format: "date"
+      studentCard:
+        type: "string"
+        format: "url"
+      profileImage:
+        type: "string"
+        format: "url"
+      studentNumber:
+        type: "string"
+      remark:
+        type: "string"
+  SubmitStudent:
+    allOf:
+    - $ref: '#/definitions/BaseStudent'
+    - type: "object"
+      properties:
+        password:
+          type: "string"
+          format: "password"
+  ResponseStudent:
+    type: "object"
+    properties:
+      total:
+        type: "integer"
+      offset:
+        type: "integer"
+      results:
+        type: "array"
+        items:
+          allOf: 
+          - $ref: '#/definitions/BaseStudent'
+          - type: "object"
+            properties:
+              id:
+                type: "integer"
+                format: "int64"
+  BaseEvent:
+    type: "object"
+    properties:
+      eventTitle:
+        type: "string"
+        maxLength: 1000
+      date:
+        type: "string"
+        format: "date"
+      startingTime:
+        type: "string"
+        format: "date-time"
+      endTime:
+        type: "string"
+        format: "date-time"
+      recruitmentNumbers:
+        type: "integer"
+        maximum: 5
+        minimum: 1
+      images:
+        type: "string"
+        format: "url"
+      status:
+        type: "string"
+        enum: ['draft', 'under_review', 'approved', 'held', 'canceled', 'rejected']
+      description:
+        type: "string"
+  SubmitEvent:
+    allOf: 
+    - $ref: '#/definitions/BaseEvent'
+  ResponseEvent:
+    type: "object"
+    properties:
+      limit:
+        type: "integer"
+      offset:
+        type: "integer"
+      results:
+        type: "array"
+        items:
+          allOf: 
+          - $ref: '#/definitions/BaseEvent'
+          - type: 'object'
+            properties:
+              id:
+                type: "integer"
+                format: "int64"
+              sponsorId:
+                type: "integer"
+                format: "int64"
+  AccessToken:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      accessToken:
+        type: "string"
+      expireTime:
+        type: "integer"
+        format: "int64"
+  BaseStudentLog:
+    type: "object"
+    properties:
+      date:
+        type: "string"
+        format: "date"
+      time:
+        type: "string"
+        format: "date-time"
+      studentId:
+        type: "integer"
+        format: "int64"
+  ResponseBaseStudentLog:
+    allOf: 
+    - $ref: '#/definitions/BaseStudentLog'
+    - type: 'object'
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+  ResponseStudentLog:
+    type: "object"
+    properties:
+      logs:
+        type: "array"
+        items:
+          $ref: '#/definitions/ResponseBaseStudentLog'
+      score:
+        type: "integer"
+  ResponseStatistic:
+    type: "object"
+    properties:
+      numberSponsor:
+        type: "integer"
+      numberSponsorThisMonth:
+        type: "integer"
+      numberStudent:
+        type: "integer"
+      numberStudentThisMonth:
+        type: "integer"
+      numberEvent:
+        type: "integer"
+      numberEventThisMonth:
+        type: "integer"
